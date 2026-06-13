@@ -12,13 +12,6 @@ Welcome to **StatePass**, a deterministic, stateless password generator ecosyste
 
 The system is designed with a **Zero-Knowledge** architecture. Neither the website nor the extension ever transmits or stores master passwords or generated passwords. They only synchronize profile parameters (like site domain, usernames, password lengths, and configurations) with the server.
 
-```mermaid
-graph TD
-    ext[Chrome Extension (Port Popup)] <--> |Profiles Sync / JWT Auth| api[Express Sync Server (Port 4000)]
-    web[Next.js Website (Port 3000)] <--> |Profiles Sync / JWT Auth| api
-    api <--> |Data Store| db[(PostgreSQL Database)]
-```
-
 ---
 
 ## 🛠️ System Prerequisites
