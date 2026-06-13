@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StatePass — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <header>
+    <div class="header-row">
+      <svg class="header-icon" width="22" height="23" viewBox="0 0 216 228" fill="none">
+        <rect x="16" y="16" width="184" height="196" rx="24" stroke="var(--accent2)" stroke-width="12" fill="var(--bg)"/>
+        <rect x="48" y="52" width="30" height="26" rx="5" fill="var(--text-dim)"/>
+        <rect x="93" y="52" width="30" height="26" rx="5" fill="var(--accent2)"/>
+        <rect x="138" y="52" width="30" height="26" rx="5" fill="var(--text-dim)"/>
+        <rect x="48" y="96" width="30" height="26" rx="5" fill="var(--text-dim)"/>
+        <rect x="93" y="96" width="30" height="26" rx="5" fill="var(--text-dim)"/>
+        <rect x="138" y="96" width="30" height="26" rx="5" fill="var(--text-dim)"/>
+        <rect x="48" y="140" width="30" height="26" rx="5" fill="var(--text-dim)"/>
+        <rect x="93" y="140" width="30" height="26" rx="5" fill="var(--text-dim)"/>
+        <rect x="138" y="140" width="30" height="26" rx="5" fill="var(--text-dim)"/>
+        <rect x="93" y="184" width="30" height="26" rx="5" fill="var(--accent2)"/>
+      </svg>
+      <h1>StatePass</h1>
+      <button class="theme-btn" id="themeToggle" title="Toggle theme"></button>
+    </div>
+    <p class="subtitle">Settings &amp; Profile Sync</p>
+  </header>
+
+  <section id="syncSection">
+    <h2>Sync Server</h2>
+    <div class="field">
+      <label for="syncServerUrl">Server URL</label>
+      <input type="url" id="syncServerUrl" placeholder="https://sync.example.com">
+    </div>
+    <div class="field">
+      <label for="syncEmail">Email / Username</label>
+      <input type="text" id="syncEmail" placeholder="user@example.com">
+    </div>
+    <div class="field">
+      <label for="syncPassword">Password</label>
+      <input type="password" id="syncPassword" placeholder="Sync account password">
+    </div>
+    <div class="actions">
+      <button class="primary" id="syncLoginBtn">Login</button>
+      <button class="secondary" id="syncLogoutBtn">Logout</button>
+      <button class="secondary" id="syncTestBtn">Test Connection</button>
+    </div>
+    <div id="syncStatus" class="status hidden"></div>
+    <div class="actions" id="syncActions" style="display:none">
+      <button class="primary" id="syncPushBtn">Push to Server</button>
+      <button class="primary" id="syncPullBtn">Pull from Server</button>
+      <button class="primary" id="syncMergeBtn">Sync Both Ways</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Default Profile Settings</h2>
+    <div class="field">
+      <label for="site">Site</label>
+      <input type="text" id="site" placeholder="example.com">
+    </div>
+    <div class="field">
+      <label for="login">Login</label>
+      <input type="text" id="login" placeholder="user@example.com">
+    </div>
+    <div class="field-row">
+      <div class="field half">
+        <label for="length">Default Length</label>
+        <input type="number" id="length" value="16" min="4" max="64">
+      </div>
+      <div class="field half">
+        <label for="counter">Default Counter</label>
+        <input type="number" id="counter" value="1" min="1" max="999">
+      </div>
+    </div>
+    <div class="field">
+      <label for="iterations">PBKDF2 Iterations</label>
+      <input type="number" id="iterations" value="600000" min="100000" max="2000000" step="100000">
+      <span class="hint">Higher = more secure but slower. OWASP recommends 600,000. SHA-256 is fixed.</span>
+    </div>
+    <div class="field checkboxes">
+      <label><input type="checkbox" id="lowercase" checked> Include lowercase (a-z)</label>
+      <label><input type="checkbox" id="uppercase" checked> Include uppercase (A-Z)</label>
+      <label><input type="checkbox" id="digits" checked> Include digits (0-9)</label>
+      <label><input type="checkbox" id="symbols" checked> Include symbols (!@#)</label>
+    </div>
+    <div class="actions">
+      <button class="primary" id="saveBtn">Save Settings</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Saved Profiles</h2>
+    <div id="savedEntries"></div>
+    <div class="actions">
+      <button class="secondary" id="exportBtn">Export Settings</button>
+      <button class="secondary" id="importBtn">Import Settings</button>
+    </div>
+    <input type="file" id="importFile" accept=".json" style="display:none">
+  </section>
+
+  <section>
+    <h2>Field Mappings</h2>
+    <p class="hint">Per-site manual field assignments for auto-fill.</p>
+    <div id="fieldMappings"></div>
+  </section>
+
+  <div id="status" class="status hidden"></div>
+  <script type="module" src="options.js"></script>
+</body>
+</html>

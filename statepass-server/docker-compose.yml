@@ -1,0 +1,63 @@
+services:
+
+  # ─── PostgreSQL ────────────────────────────────────────────────────────────
+  postgres:
+    build:
+      context: ./backend/db
+      dockerfile: Dockerfile
+    container_name: statepass_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${DB_NAME:-statepass_sync}
+      POSTGRES_USER:     ${DB_USER:-statepass}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    ports:
+      - "5432:5432"
+    tmpfs: /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-statepass} -d ${DB_NAME:-statepass_sync}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+      - external
+
+  # ─── Node.js API ─────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: statepass_api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST:     postgres
+      DB_PORT:     5432
+      DB_NAME:     ${DB_NAME:-statepass_sync}
+      DB_USER:     ${DB_USER:-statepass}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      DB_SSL:      false
+      JWT_SECRET:  ${JWT_SECRET:?JWT_SECRET is required}
+      PORT:        3000
+      NODE_ENV:    production
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+    ports:
+      - "${PORT:-3000}:3000"
+    networks:
+      - internal
+      - external
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  internal:
+    driver: bridge
+    internal: true   # postgres not reachable from outside
+  external:
+    driver: bridge

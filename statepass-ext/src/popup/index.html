@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StatePass</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <svg class="logo-icon" width="20" height="21" viewBox="0 0 216 228" fill="none">
+        <rect x="16" y="16" width="184" height="196" rx="24" stroke="var(--accent)" stroke-width="12" fill="var(--bg3)"/>
+        <rect x="48" y="52" width="30" height="26" rx="5" fill="var(--text-dim)"/>
+        <rect x="93" y="52" width="30" height="26" rx="5" fill="var(--accent)"/>
+        <rect x="138" y="52" width="30" height="26" rx="5" fill="var(--text-dim)"/>
+        <rect x="48" y="96" width="30" height="26" rx="5" fill="var(--text-dim)"/>
+        <rect x="93" y="96" width="30" height="26" rx="5" fill="var(--text-dim)"/>
+        <rect x="138" y="96" width="30" height="26" rx="5" fill="var(--text-dim)"/>
+        <rect x="48" y="140" width="30" height="26" rx="5" fill="var(--text-dim)"/>
+        <rect x="93" y="140" width="30" height="26" rx="5" fill="var(--text-dim)"/>
+        <rect x="138" y="140" width="30" height="26" rx="5" fill="var(--text-dim)"/>
+        <rect x="93" y="184" width="30" height="26" rx="5" fill="var(--accent)"/>
+      </svg>
+      <span class="logo">StatePass<sup>+</sup></span>
+      <span class="tagline">Stateless</span>
+      <button class="theme-btn" id="themeToggle" title="Toggle theme"></button>
+    </header>
+
+    <div class="tabs">
+      <button type="button" class="tab-btn active" id="tabGenerator">Generator</button>
+      <button type="button" class="tab-btn" id="tabSync">Sync Server</button>
+    </div>
+
+    <div id="generatorView">
+      <form id="passwordForm">
+        <div class="field">
+          <label for="site">Site</label>
+          <input type="text" id="site" placeholder="example.com" autofocus>
+        </div>
+
+        <div class="field">
+          <label for="login">Login</label>
+          <input type="text" id="login" placeholder="user@example.com">
+        </div>
+
+        <div class="field field--master">
+          <label for="masterPassword">Master Password</label>
+          <div class="input-wrap">
+            <input type="password" id="masterPassword" placeholder="Enter master password">
+            <button type="button" class="reveal-btn" id="toggleMaster" tabindex="-1">&#x1f441;</button>
+          </div>
+        </div>
+
+        <div class="option-strip">
+          <div class="charset-group">
+            <label class="toggle-chip"><input type="checkbox" id="lowercase" checked><span>a-z</span></label>
+            <label class="toggle-chip"><input type="checkbox" id="uppercase" checked><span>A-Z</span></label>
+            <label class="toggle-chip"><input type="checkbox" id="digits" checked><span>0-9</span></label>
+            <label class="toggle-chip"><input type="checkbox" id="symbols" checked><span>!@#</span></label>
+          </div>
+          <div class="num-group">
+            <div class="field field--num">
+              <label for="length">Len</label>
+              <input type="number" id="length" value="16" min="4" max="64">
+            </div>
+            <div class="field field--num">
+              <label for="counter">Cnt</label>
+              <input type="number" id="counter" value="1" min="1" max="999">
+            </div>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <button type="submit" class="btn btn--primary" id="generateBtn">Generate</button>
+          <button type="button" class="btn btn--ghost" id="passphraseBtn">Passphrase</button>
+        </div>
+      </form>
+
+      <div id="resultArea" class="result hidden">
+        <div class="result-header">
+          <span>Generated Password</span>
+          <span class="bits-label" id="entropyBits"></span>
+          <span id="strengthBadge" class="badge"></span>
+          <div class="result-actions">
+            <button class="icon-btn" id="copyBtn" title="Copy to clipboard">&#x1f4cb;</button>
+            <button class="icon-btn" id="regenerateBtn" title="Regenerate">&#x1f504;</button>
+            <button class="icon-btn" id="saveBtn" title="Save profile">&#x1f4be;</button>
+          </div>
+        </div>
+        <div class="result-pw-wrap">
+          <input type="text" id="generatedPassword" class="pw-display" readonly>
+        </div>
+        <div class="action-row">
+          <button class="btn btn--ghost" id="fillBtn">Auto-Fill Page</button>
+          <button class="btn btn--ghost" id="syncBtn">Sync</button>
+        </div>
+        <div id="clipboardTimer" class="clipboard-timer hidden">
+          Clears in <span id="countdown">30</span>s
+        </div>
+      </div>
+    </div>
+
+    <div id="syncView" class="hidden">
+      <!-- If NOT connected -->
+      <form id="syncLoginForm" class="sync-form">
+        <div class="field">
+          <label for="syncServerUrlInput">Server URL</label>
+          <input type="url" id="syncServerUrlInput" placeholder="http://localhost:4000">
+        </div>
+        <div class="field">
+          <label for="syncEmailInput">Email / Username</label>
+          <input type="text" id="syncEmailInput" placeholder="user@example.com">
+        </div>
+        <div class="field">
+          <label for="syncPasswordInput">Password</label>
+          <input type="password" id="syncPasswordInput" placeholder="Sync account password">
+        </div>
+        <div class="action-row">
+          <button type="submit" class="btn btn--primary" id="loginSubmitBtn">Login</button>
+        </div>
+      </form>
+
+      <!-- If CONNECTED -->
+      <div id="syncConnectedPanel" class="sync-connected-panel hidden">
+        <div class="connected-info">
+          <div class="info-row">
+            <span class="info-label">Status</span>
+            <span class="info-val val--success">Connected</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">User</span>
+            <span class="info-val" id="connectedUser">user@example.com</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Server</span>
+            <span class="info-val font-mono" id="connectedServer">http://localhost:4000</span>
+          </div>
+        </div>
+        <div class="sync-actions-vertical">
+          <button type="button" class="btn btn--ghost" id="syncPushBtn">Push Profiles to Server</button>
+          <button type="button" class="btn btn--ghost" id="syncPullBtn">Pull Profiles from Server</button>
+          <button type="button" class="btn btn--primary" id="syncMergeBtn">Two-Way Sync</button>
+          <button type="button" class="btn btn--danger" id="logoutBtn">Logout</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <span class="sync-status" id="syncStatus">Not connected</span>
+      <a href="#" id="openOptions">Settings</a>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
