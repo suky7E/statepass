@@ -13,6 +13,7 @@ for (const dotenvPath of dotenvPaths) {
 const express = require('express');
 const cors    = require('cors');
 const { securityHeaders, requireJSON } = require('./middleware/security');
+const { initDb } = require('./db/init');
 
 const app  = express();
 const PORT = Number(process.env.PORT || process.env.RAILWAY_PORT || 3000);
@@ -80,11 +81,18 @@ app.use((err, req, res, _next) => {
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 if (require.main === module) {
-  app.listen(PORT, HOST, () => {
-    console.log(`\n StatePass Sync Server`);
-    console.log(`   API: http://${HOST}:${PORT}/api`);
-    console.log(`   Env: ${process.env.NODE_ENV || 'development'}\n`);
-  });
+  initDb()
+    .then(() => {
+      app.listen(PORT, HOST, () => {
+        console.log(`\n StatePass Sync Server`);
+        console.log(`   API: http://${HOST}:${PORT}/api`);
+        console.log(`   Env: ${process.env.NODE_ENV || 'development'}\n`);
+      });
+    })
+    .catch((err) => {
+      console.error('[DB] Schema initialisation failed — server will not start:', err);
+      process.exit(1);
+    });
 }
 
 module.exports = app;
