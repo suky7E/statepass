@@ -6,7 +6,6 @@ Welcome to **StatePass**, a deterministic, stateless password generator ecosyste
 2. **`statepass-website`**: Next.js (React) modern web application for generating passwords and managing profiles.
 3. **`statepass-ext`**: Vanilla JavaScript Chrome extension featuring autofill and seamless popup synchronization.
 
----
 
 ## 🏗️ Architecture Overview
 

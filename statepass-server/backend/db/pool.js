@@ -1,16 +1,27 @@
 // db/pool.js
 const { Pool } = require('pg');
 
+const poolConfig = process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.DB_SSL === 'true' || process.env.NODE_ENV === 'production'
+        ? { rejectUnauthorized: false }
+        : false,
+    }
+  : {
+      host: process.env.DB_HOST || process.env.PGHOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || process.env.PGPORT || '5432'),
+      database: process.env.DB_NAME || process.env.PGDATABASE || 'statepass_sync',
+      user: process.env.DB_USER || process.env.PGUSER || 'statepass',
+      password: process.env.DB_PASSWORD || process.env.PGPASSWORD,
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: true } : false,
+    };
+
 const pool = new Pool({
-  host:     process.env.DB_HOST     || 'localhost',
-  port:     parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME     || 'statepass_sync',
-  user:     process.env.DB_USER     || 'statepass',
-  password: process.env.DB_PASSWORD,
-  max:      20,
+  ...poolConfig,
+  max: 20,
   idleTimeoutMillis: 30_000,
   connectionTimeoutMillis: 5_000,
-  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: true } : false,
 });
 
 pool.on('error', (err) => {

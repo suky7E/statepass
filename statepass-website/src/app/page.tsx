@@ -993,7 +993,7 @@ export default function Home() {
                     type="url"
                     value={syncServerUrl}
                     onChange={(e) => setSyncServerUrl(e.target.value)}
-                    placeholder="http://localhost:4000"
+                    placeholder={DEFAULT_SERVER_URL}
                     className={styles.formInput}
                   />
                 </div>

@@ -2,14 +2,21 @@
 'use strict';
 
 const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
+const dotenvPaths = [
+  path.resolve(__dirname, '.env'),
+  path.resolve(__dirname, '..', '.env'),
+];
+for (const dotenvPath of dotenvPaths) {
+  require('dotenv').config({ path: dotenvPath });
+}
 
 const express = require('express');
 const cors    = require('cors');
 const { securityHeaders, requireJSON } = require('./middleware/security');
 
 const app  = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT || process.env.RAILWAY_PORT || 3000);
+const HOST = process.env.HOST || '0.0.0.0';
 
 // ─── Trust proxy (for correct req.ip behind Nginx/Docker) ────────────────────
 app.set('trust proxy', 1);
@@ -73,9 +80,9 @@ app.use((err, req, res, _next) => {
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 if (require.main === module) {
-  app.listen(PORT, () => {
+  app.listen(PORT, HOST, () => {
     console.log(`\n StatePass Sync Server`);
-    console.log(`   API: http://localhost:${PORT}/api`);
+    console.log(`   API: http://${HOST}:${PORT}/api`);
     console.log(`   Env: ${process.env.NODE_ENV || 'development'}\n`);
   });
 }

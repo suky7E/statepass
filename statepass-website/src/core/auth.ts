@@ -25,7 +25,7 @@ export interface Session {
 
 const SESSION_KEY = "statepass_session";
 const LOCAL_PROFILES_KEY = "statepass_local_profiles";
-export const DEFAULT_SERVER_URL = "http://localhost:4000";
+export const DEFAULT_SERVER_URL = process.env.NEXT_PUBLIC_STATEPASS_SERVER_URL || "http://localhost:4000";
 
 // Helper: safe localStorage access for SSR/Next.js hydration
 function isClient() {
