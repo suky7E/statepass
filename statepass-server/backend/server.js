@@ -31,11 +31,24 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
   .map(s => s.trim())
   .filter(Boolean);
 
+// Helper function to match patterns with wildcards (*)
+function matchOrigin(origin, allowedOrigins) {
+  return allowedOrigins.some(pattern => {
+    if (pattern === '*') return true;
+    // Escape regex characters, but convert '*' to '.*'
+    const escapedPattern = pattern
+      .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+      .replace(/\*/g, '.*');
+    const regex = new RegExp(`^${escapedPattern}$`, 'i');
+    return regex.test(origin);
+  });
+}
+
 app.use(cors({
   origin: (origin, cb) => {
     // Allow same-origin (no Origin header) or extension origins
     if (!origin) return cb(null, true);
-    if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    if (matchOrigin(origin, ALLOWED_ORIGINS)) return cb(null, true);
     if (origin.startsWith('chrome-extension://')) return cb(null, true);
     if (origin.startsWith('moz-extension://'))    return cb(null, true);
     cb(new Error(`CORS: origin ${origin} not allowed`));
@@ -81,19 +94,10 @@ app.use((err, req, res, _next) => {
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 if (require.main === module) {
-<<<<<<< HEAD
-  initDb()
-    .then(() => {
-=======
   const { initDb } = require('./db/init');
 
-  const INIT_TIMEOUT_MS = 15_000; // 15 s outer guard
+  const INIT_TIMEOUT_MS = 15_000;
 
-  /**
-   * Wrap initDb() in a hard timeout so the process never hangs indefinitely.
-   * initDb() already retries internally (3 × 10 s attempts with backoff), so
-   * this outer timeout is a last-resort safety net.
-   */
   function initDbWithTimeout() {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -101,8 +105,14 @@ if (require.main === module) {
       }, INIT_TIMEOUT_MS);
 
       initDb()
-        .then(() => { clearTimeout(timer); resolve(); })
-        .catch(err => { clearTimeout(timer); reject(err); });
+        .then(() => {
+          clearTimeout(timer);
+          resolve();
+        })
+        .catch(err => {
+          clearTimeout(timer);
+          reject(err);
+        });
     });
   }
 
@@ -111,20 +121,14 @@ if (require.main === module) {
   initDbWithTimeout()
     .then(() => {
       console.log('[Server] Database ready — starting HTTP listener…');
->>>>>>> 7cb803f731379c7e472057aafd6eae6b0a50232c
       app.listen(PORT, HOST, () => {
         console.log(`\n StatePass Sync Server`);
         console.log(`   API: http://${HOST}:${PORT}/api`);
         console.log(`   Env: ${process.env.NODE_ENV || 'development'}\n`);
       });
     })
-<<<<<<< HEAD
-    .catch((err) => {
-      console.error('[DB] Schema initialisation failed — server will not start:', err);
-=======
     .catch(err => {
       console.error('[Server] Fatal: database initialisation failed —', err.message);
->>>>>>> 7cb803f731379c7e472057aafd6eae6b0a50232c
       process.exit(1);
     });
 }

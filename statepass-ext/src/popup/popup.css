@@ -103,7 +103,8 @@ label {
 
 input[type="text"],
 input[type="password"],
-input[type="number"] {
+input[type="number"],
+input[type="url"] {
   background: var(--bg3);
   border: 1px solid var(--border);
   color: var(--text);
@@ -422,5 +423,311 @@ input:focus {
 }
 .btn--danger:active {
   transform: scale(0.97);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Server URL Bar with Connection Status
+   ═══════════════════════════════════════════════════════ */
+.server-url-section {
+  padding: 14px 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.server-url-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+}
+
+.server-url-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 8px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.server-url-bar:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.connection-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 4px color-mix(in srgb, var(--red) 40%, transparent);
+  transition: background 0.4s ease, box-shadow 0.4s ease;
+  position: relative;
+}
+
+.connection-dot.connected {
+  background: var(--green);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--green) 50%, transparent);
+  animation: dotPulse 2s ease-in-out infinite;
+}
+
+.connection-dot.checking {
+  background: var(--yellow);
+  box-shadow: 0 0 4px color-mix(in srgb, var(--yellow) 40%, transparent);
+  animation: dotBlink 0.6s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% { box-shadow: 0 0 4px color-mix(in srgb, var(--green) 40%, transparent); }
+  50%      { box-shadow: 0 0 10px color-mix(in srgb, var(--green) 60%, transparent); }
+}
+
+@keyframes dotBlink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+.server-url-input {
+  flex: 1;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text);
+  padding: 5px 0;
+  outline: none;
+  min-width: 0;
+}
+
+.server-url-input::placeholder {
+  color: var(--text-faint);
+}
+
+.server-test-btn {
+  flex-shrink: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  transition: all var(--transition);
+}
+
+.server-test-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+}
+
+.server-test-btn.spinning svg {
+  animation: spinOnce 0.8s linear infinite;
+}
+
+@keyframes spinOnce {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.connection-status-text {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  letter-spacing: 0.03em;
+  transition: color 0.3s ease;
+}
+
+.connection-status-text.connected {
+  color: var(--green);
+}
+
+.connection-status-text.error {
+  color: var(--red);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Saved Profiles Panel
+   ═══════════════════════════════════════════════════════ */
+.profiles-panel {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: slideIn 150ms ease;
+}
+
+.profiles-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.profiles-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+
+.profiles-count {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--accent) 15%, var(--bg3));
+  color: var(--accent-hi);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  padding: 2px 8px;
+  border-radius: 10px;
+  letter-spacing: 0.04em;
+}
+
+.profiles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.profiles-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.profiles-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.profiles-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.profiles-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 28px 14px;
+  color: var(--text-faint);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.profiles-empty-hint {
+  font-size: 10px;
+  color: var(--text-faint);
+  opacity: 0.7;
+  max-width: 200px;
+  line-height: 1.4;
+}
+
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+  animation: slideIn 150ms ease;
+}
+
+.profile-card:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, var(--bg2));
+}
+
+.profile-card-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg3));
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.profile-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profile-card-site {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-card-login {
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-card-meta {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-faint);
+  display: flex;
+  gap: 6px;
+}
+
+.profile-card-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.profile-card-btn {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 12px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  transition: all var(--transition);
+}
+
+.profile-card-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.profile-card-btn.delete-btn:hover {
+  color: var(--red);
+  border-color: var(--red);
+  background: color-mix(in srgb, var(--red) 10%, var(--bg3));
 }
 

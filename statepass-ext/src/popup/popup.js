@@ -34,6 +34,9 @@ const clipboardTimer   = $('clipboardTimer');
 const countdown        = $('countdown');
 const themeToggle      = $('themeToggle');
 const syncStatus       = $('syncStatus');
+const connectionDot    = $('connectionDot');
+const connectionStatusText = $('connectionStatusText');
+const testConnectionBtn    = $('testConnectionBtn');
 
 let clipboardTimeout = null;
 let clipboardInterval = null;
@@ -216,27 +219,34 @@ async function init() {
   if (defaults.symbols   !== undefined) symbols.checked   = defaults.symbols;
 
   initTheme();
-  updateSyncStatus();
+  await updateSyncStatus();
+  await renderProfiles();
+  // Auto-check connection on load
+  await checkServerConnection();
 }
 
-const tabGenerator = $('tabGenerator');
-const tabSync      = $('tabSync');
-const generatorView= $('generatorView');
-const syncView     = $('syncView');
+// ── Tab Navigation (3 tabs) ─────────────────────────────────────────────────
+const tabGenerator  = $('tabGenerator');
+const tabProfiles   = $('tabProfiles');
+const tabSync       = $('tabSync');
+const generatorView = $('generatorView');
+const profilesView  = $('profilesView');
+const syncView      = $('syncView');
 
-tabGenerator.addEventListener('click', () => {
-  tabGenerator.classList.add('active');
-  tabSync.classList.remove('active');
-  generatorView.classList.remove('hidden');
-  syncView.classList.add('hidden');
-});
+function switchTab(activeTab) {
+  // Reset all
+  [tabGenerator, tabProfiles, tabSync].forEach(t => t.classList.remove('active'));
+  [generatorView, profilesView, syncView].forEach(v => v.classList.add('hidden'));
 
-tabSync.addEventListener('click', () => {
-  tabSync.classList.add('active');
-  tabGenerator.classList.remove('active');
-  syncView.classList.remove('hidden');
-  generatorView.classList.add('hidden');
-});
+  activeTab.classList.add('active');
+  if (activeTab === tabGenerator) generatorView.classList.remove('hidden');
+  if (activeTab === tabProfiles)  { profilesView.classList.remove('hidden'); renderProfiles(); }
+  if (activeTab === tabSync)      syncView.classList.remove('hidden');
+}
+
+tabGenerator.addEventListener('click', () => switchTab(tabGenerator));
+tabProfiles.addEventListener('click',  () => switchTab(tabProfiles));
+tabSync.addEventListener('click',      () => switchTab(tabSync));
 
 $('passwordForm').addEventListener('submit', handleGenerate);
 regenerateBtn.addEventListener('click', handleGenerate);
@@ -366,7 +376,14 @@ async function updateSyncStatus() {
     const syncLoginForm = $('syncLoginForm');
     const syncConnectedPanel = $('syncConnectedPanel');
     const connectedUser = $('connectedUser');
-    const connectedServer = $('connectedServer');
+    
+    // Always set server URL in the new bar
+    const serverUrlInput = $('syncServerUrlInput');
+    if (syncServerUrl) {
+      serverUrlInput.value = syncServerUrl;
+    } else {
+      serverUrlInput.value = 'https://statepass-production.up.railway.app';
+    }
     
     if (syncSession?.user) {
       const emailOrUsername = syncSession.user.email || syncSession.user.username || '...';
@@ -374,7 +391,6 @@ async function updateSyncStatus() {
       
       // Update Sync View Panel
       connectedUser.textContent = emailOrUsername;
-      connectedServer.textContent = syncServerUrl || 'http://localhost:4000';
       
       syncLoginForm.classList.add('hidden');
       syncConnectedPanel.classList.remove('hidden');
@@ -384,13 +400,6 @@ async function updateSyncStatus() {
       // Update Sync View Panel
       syncLoginForm.classList.remove('hidden');
       syncConnectedPanel.classList.add('hidden');
-      
-      // Prefill server URL from storage if available
-      if (syncServerUrl) {
-        $('syncServerUrlInput').value = syncServerUrl;
-      } else {
-        $('syncServerUrlInput').value = 'http://localhost:4000';
-      }
     }
   } catch (err) {
     console.error('Error updating sync status:', err);
@@ -398,6 +407,174 @@ async function updateSyncStatus() {
     $('syncLoginForm').classList.remove('hidden');
     $('syncConnectedPanel').classList.add('hidden');
   }
+}
+
+// ── Connection Check ────────────────────────────────────────────────────────
+async function checkServerConnection() {
+  const url = $('syncServerUrlInput').value.trim();
+  if (!url) {
+    setConnectionState('disconnected', 'No URL configured');
+    return;
+  }
+  
+  setConnectionState('checking', 'Checking connection...');
+  testConnectionBtn.classList.add('spinning');
+  
+  try {
+    const cleanUrl = url.replace(/\/$/, '');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    
+    const res = await fetch(`${cleanUrl}/api/health`, {
+      method: 'GET',
+      signal: controller.signal
+    }).catch(() => null);
+    
+    clearTimeout(timeout);
+    
+    if (res && res.ok) {
+      setConnectionState('connected', `Connected to ${new URL(cleanUrl).hostname}`);
+    } else if (res) {
+      // Server responded but not with health endpoint — try root
+      setConnectionState('connected', `Server reachable (${res.status})`);
+    } else {
+      setConnectionState('disconnected', 'Server unreachable');
+    }
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      setConnectionState('disconnected', 'Connection timed out');
+    } else {
+      setConnectionState('disconnected', 'Connection failed');
+    }
+  } finally {
+    testConnectionBtn.classList.remove('spinning');
+  }
+}
+
+function setConnectionState(state, text) {
+  connectionDot.className = 'connection-dot';
+  connectionStatusText.className = 'connection-status-text';
+  connectionDot.title = text;
+  connectionStatusText.textContent = text;
+  
+  if (state === 'connected') {
+    connectionDot.classList.add('connected');
+    connectionStatusText.classList.add('connected');
+  } else if (state === 'checking') {
+    connectionDot.classList.add('checking');
+  } else {
+    connectionStatusText.classList.add('error');
+  }
+}
+
+testConnectionBtn.addEventListener('click', checkServerConnection);
+
+// Also check connection when URL input changes (debounced)
+let urlDebounce = null;
+$('syncServerUrlInput').addEventListener('input', () => {
+  clearTimeout(urlDebounce);
+  setConnectionState('disconnected', 'Not connected');
+  urlDebounce = setTimeout(() => checkServerConnection(), 800);
+});
+
+// ── Saved Profiles Rendering ────────────────────────────────────────────────
+async function renderProfiles() {
+  const { savedEntries = [] } = await chrome.storage.sync.get('savedEntries');
+  const profilesList = $('profilesList');
+  const profilesEmpty = $('profilesEmpty');
+  const profilesCount = $('profilesCount');
+  
+  profilesCount.textContent = savedEntries.length;
+  
+  // Clear existing cards (keep empty state)
+  profilesList.querySelectorAll('.profile-card').forEach(el => el.remove());
+  
+  if (savedEntries.length === 0) {
+    profilesEmpty.classList.remove('hidden');
+    return;
+  }
+  
+  profilesEmpty.classList.add('hidden');
+  
+  savedEntries.forEach((entry, index) => {
+    const card = document.createElement('div');
+    card.className = 'profile-card';
+    
+    // Generate favicon-like icon from first letter
+    const initial = (entry.site || '?')[0].toUpperCase();
+    
+    // Build charset meta string
+    const charsets = [];
+    if (entry.lowercase !== false) charsets.push('a-z');
+    if (entry.uppercase !== false) charsets.push('A-Z');
+    if (entry.digits !== false) charsets.push('0-9');
+    if (entry.symbols !== false) charsets.push('!@#');
+    
+    card.innerHTML = `
+      <div class="profile-card-icon">${initial}</div>
+      <div class="profile-card-info">
+        <span class="profile-card-site">${escapeHtml(entry.site || 'Unknown')}</span>
+        <span class="profile-card-login">${escapeHtml(entry.login || 'No login')}</span>
+        <div class="profile-card-meta">
+          <span>len:${entry.length || 16}</span>
+          <span>${charsets.join(' ')}</span>
+        </div>
+      </div>
+      <div class="profile-card-actions">
+        <button class="profile-card-btn load-btn" title="Load profile" data-index="${index}">&#x25B6;</button>
+        <button class="profile-card-btn delete-btn" title="Delete profile" data-index="${index}">&#x2715;</button>
+      </div>
+    `;
+    
+    // Load profile on card click
+    card.querySelector('.load-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      loadProfile(entry);
+    });
+    
+    // Load on card body click too
+    card.addEventListener('click', () => loadProfile(entry));
+    
+    // Delete profile
+    card.querySelector('.delete-btn').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await deleteProfile(index);
+    });
+    
+    profilesList.appendChild(card);
+  });
+}
+
+function loadProfile(entry) {
+  site.value = entry.site || '';
+  login.value = entry.login || '';
+  length.value = entry.length || 16;
+  counter.value = entry.counter || 1;
+  lowercase.checked = entry.lowercase !== false;
+  uppercase.checked = entry.uppercase !== false;
+  digits.checked = entry.digits !== false;
+  symbols.checked = entry.symbols !== false;
+  
+  // Switch to generator tab
+  switchTab(tabGenerator);
+  showToast(`Loaded: ${entry.site}`);
+}
+
+async function deleteProfile(index) {
+  const { savedEntries = [] } = await chrome.storage.sync.get('savedEntries');
+  const entry = savedEntries[index];
+  if (!entry) return;
+  
+  savedEntries.splice(index, 1);
+  await chrome.storage.sync.set({ savedEntries });
+  showToast(`Deleted: ${entry.site}`);
+  await renderProfiles();
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
 
 document.addEventListener('DOMContentLoaded', init);
