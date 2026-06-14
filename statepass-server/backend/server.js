@@ -80,11 +80,42 @@ app.use((err, req, res, _next) => {
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 if (require.main === module) {
-  app.listen(PORT, HOST, () => {
-    console.log(`\n StatePass Sync Server`);
-    console.log(`   API: http://${HOST}:${PORT}/api`);
-    console.log(`   Env: ${process.env.NODE_ENV || 'development'}\n`);
-  });
+  const { initDb } = require('./db/init');
+
+  const INIT_TIMEOUT_MS = 15_000; // 15 s outer guard
+
+  /**
+   * Wrap initDb() in a hard timeout so the process never hangs indefinitely.
+   * initDb() already retries internally (3 × 10 s attempts with backoff), so
+   * this outer timeout is a last-resort safety net.
+   */
+  function initDbWithTimeout() {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error(`[DB] initDb() did not complete within ${INIT_TIMEOUT_MS / 1000}s`));
+      }, INIT_TIMEOUT_MS);
+
+      initDb()
+        .then(() => { clearTimeout(timer); resolve(); })
+        .catch(err => { clearTimeout(timer); reject(err); });
+    });
+  }
+
+  console.log('[Server] Initialising database schema…');
+
+  initDbWithTimeout()
+    .then(() => {
+      console.log('[Server] Database ready — starting HTTP listener…');
+      app.listen(PORT, HOST, () => {
+        console.log(`\n StatePass Sync Server`);
+        console.log(`   API: http://${HOST}:${PORT}/api`);
+        console.log(`   Env: ${process.env.NODE_ENV || 'development'}\n`);
+      });
+    })
+    .catch(err => {
+      console.error('[Server] Fatal: database initialisation failed —', err.message);
+      process.exit(1);
+    });
 }
 
 module.exports = app;
